@@ -1,9 +1,15 @@
 import http from 'http'
+import fs from 'fs'
 
 const server = http.createServer((request, response) => {
-    console.log(request.url)
-    response.write('Hello World!')
-    response.end()
+    if (request.url === '/') {
+        const htmlFile = fs.readFileSync('./public/index.html', 'utf-8')
+        response.writeHead(200, {'Content-Type': 'text/html'})
+        response.end(htmlFile)
+    } else {
+        response.writeHead(404, {'Content-Type': 'text/html'})
+        response.end()
+    }
 })
 
 server.listen(8080, () => {
