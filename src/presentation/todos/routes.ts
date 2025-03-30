@@ -7,6 +7,7 @@ export class ToDoRoutes {
         const toDoController = new ToDosController()
         router.get('/', toDoController.getToDos)
         router.get('/:id', toDoController.getToDoById)
+        router.post('/', toDoController.create)
         return router
     }
 }

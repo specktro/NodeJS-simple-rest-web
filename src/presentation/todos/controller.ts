@@ -17,7 +17,7 @@ export class ToDosController {
         const id = +req.params.id
 
         if (isNaN(id)) {
-            return res.status(400).json({error: 'To id must be a number'})
+            res.status(400).json({error: 'To id must be a number'})
         }
 
         const toDo = toDos.find(toDo => toDo.id === id)
@@ -28,6 +28,22 @@ export class ToDosController {
             res.status(404).json({
                 error: `TODO with id ${id} not found`
             })
+        }
+    }
+
+    public create = (req: Request, res: Response) => {
+        const {text} = req.body
+
+        if (!text) {
+            res.status(400).json({error: 'Text property is required'})
+        } else {
+            const newToDo = {
+                id: toDos.length + 1,
+                text: text,
+                createdAt: null
+            }
+            toDos.push(newToDo)
+            res.json(newToDo)
         }
     }
 }
