@@ -75,4 +75,23 @@ export class ToDosController {
         toDo.text = text || toDo.text
         res.json(toDo)
     }
+
+    public delete = (req: Request, res: Response) => {
+        const id = +req.params.id
+
+        if (isNaN(id)) {
+            res.status(400).json({error: 'To id must be a number'})
+            return
+        }
+
+        const toDo = toDos.find(toDo => toDo.id === id)
+
+        if (!toDo) {
+            res.status(404).json({error: `TODO with id ${id} not found`})
+            return
+        }
+
+        toDos.splice(toDos.indexOf(toDo), 1)
+        res.json(toDo)
+    }
 }
