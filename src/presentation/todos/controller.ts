@@ -1,4 +1,5 @@
 import {Request, Response} from 'express'
+import {prisma} from "../../data/postgres";
 
 const toDos = [
     {id: 1, text: 'Buy milk', completedAt: new Date()},
@@ -32,7 +33,7 @@ export class ToDosController {
         }
     }
 
-    public create = (req: Request, res: Response) => {
+    public create = async (req: Request, res: Response) => {
         const {text} = req.body
 
         if (!text) {
@@ -40,12 +41,10 @@ export class ToDosController {
             return
         }
 
-        const newToDo = {
-            id: toDos.length + 1,
-            text: text,
-            completedAt: null
-        }
-        toDos.push(newToDo)
+        const newToDo = await prisma.toDo.create({
+            data: { text },
+        })
+
         res.json(newToDo)
     }
 
