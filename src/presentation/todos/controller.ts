@@ -1,5 +1,6 @@
 import {Request, Response} from 'express'
 import {prisma} from "../../data/postgres";
+import {CreateToDoDTO} from '../../domain/dtos'
 
 export class ToDosController {
     constructor() {}
@@ -31,15 +32,15 @@ export class ToDosController {
     }
 
     public create = async (req: Request, res: Response) => {
-        const {text} = req.body
+        const [error, toDoDTO] = CreateToDoDTO.create(req.body)
 
-        if (!text) {
-            res.status(400).json({error: 'Text property is required'})
+        if (error) {
+            res.status(400).json({error: error})
             return
         }
 
         const newToDo = await prisma.toDo.create({
-            data: { text },
+            data: toDoDTO!,
         })
 
         res.json(newToDo)
