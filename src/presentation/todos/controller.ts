@@ -1,6 +1,6 @@
 import {Request, Response} from 'express'
 import {prisma} from "../../data/postgres";
-import {CreateToDoDTO} from '../../domain/dtos'
+import {CreateToDoDTO, UpdateToDoDTO} from '../../domain/dtos'
 
 export class ToDosController {
     constructor() {}
@@ -48,9 +48,10 @@ export class ToDosController {
 
     public update = async (req: Request, res: Response) => {
         const id = +req.params.id
+        const [error, updateDTO] = UpdateToDoDTO.create({...req.body, id})
 
-        if (isNaN(id)) {
-            res.status(400).json({error: 'To id must be a number'})
+        if (error) {
+            res.status(400).json({error: error})
             return
         }
 
@@ -63,13 +64,9 @@ export class ToDosController {
             return
         }
 
-        const {text, completedAt} = req.body
         const updatedToDo = await prisma.toDo.update({
             where: {id: id},
-            data: {
-                text: text,
-                completedAt: (completedAt) ? new Date(completedAt) : null
-            },
+            data: updateDTO!.values,
         })
 
         res.json(updatedToDo)
