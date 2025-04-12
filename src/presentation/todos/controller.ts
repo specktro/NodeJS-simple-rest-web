@@ -1,20 +1,15 @@
 import {Request, Response} from 'express'
 import {prisma} from "../../data/postgres";
 
-const toDos = [
-    {id: 1, text: 'Buy milk', completedAt: new Date()},
-    {id: 2, text: 'Buy bread', completedAt: null},
-    {id: 3, text: 'Buy butter', completedAt: new Date()}
-]
-
 export class ToDosController {
     constructor() {}
 
-    public getAll = (req: Request, res: Response) => {
+    public getAll = async (req: Request, res: Response) => {
+        const toDos = await prisma.toDo.findMany()
         res.json(toDos)
     }
 
-    public getWithId = (req: Request, res: Response) => {
+    public getWithId = async (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -22,7 +17,9 @@ export class ToDosController {
             return
         }
 
-        const toDo = toDos.find(toDo => toDo.id === id)
+        const toDo = await prisma.toDo.findFirst({
+            where: {id: id}
+        })
 
         if (toDo) {
             res.json(toDo)
@@ -48,7 +45,7 @@ export class ToDosController {
         res.json(newToDo)
     }
 
-    public update = (req: Request, res: Response) => {
+    public update = async (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -56,7 +53,9 @@ export class ToDosController {
             return
         }
 
-        const toDo = toDos.find(toDo => toDo.id === id)
+        const toDo = await prisma.toDo.findFirst({
+            where: {id: id}
+        })
 
         if (!toDo) {
             res.status(404).json({error: `TODO with id ${id} not found`})
@@ -64,18 +63,18 @@ export class ToDosController {
         }
 
         const {text, completedAt} = req.body
+        const updatedToDo = await prisma.toDo.update({
+            where: {id: id},
+            data: {
+                text: text,
+                completedAt: (completedAt) ? new Date(completedAt) : null
+            },
+        })
 
-        if (completedAt === null) {
-            toDo.completedAt = null
-        } else {
-            toDo.completedAt = new Date(completedAt || toDo.completedAt)
-        }
-
-        toDo.text = text || toDo.text
-        res.json(toDo)
+        res.json(updatedToDo)
     }
 
-    public delete = (req: Request, res: Response) => {
+    public delete = async (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -83,14 +82,23 @@ export class ToDosController {
             return
         }
 
-        const toDo = toDos.find(toDo => toDo.id === id)
+        const toDo = await prisma.toDo.findFirst({
+            where: {id: id}
+        })
 
         if (!toDo) {
             res.status(404).json({error: `TODO with id ${id} not found`})
             return
         }
 
-        toDos.splice(toDos.indexOf(toDo), 1)
-        res.json(toDo)
+        const deletedToDo = await prisma.toDo.delete({
+            where: {id: id}
+        })
+
+        if (deletedToDo) {
+            res.json(deletedToDo)
+        } else {
+            res.status(404).json({error: `TODO with id ${id} not found`})
+        }
     }
 }
