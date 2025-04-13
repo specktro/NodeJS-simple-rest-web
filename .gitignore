@@ -4,6 +4,7 @@
 /coverage
 .idea/
 /logs
+dist/
 /mongo**
 /postgres**
 prisma/**/migrations
