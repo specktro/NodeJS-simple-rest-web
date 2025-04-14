@@ -1,19 +1,16 @@
 import {Request, Response} from 'express'
-
-const toDos = [
-    {id: 1, text: 'Buy milk', completedAt: new Date()},
-    {id: 2, text: 'Buy bread', completedAt: null},
-    {id: 3, text: 'Buy butter', completedAt: new Date()}
-]
+import {prisma} from "../../data/postgres";
+import {CreateToDoDTO, UpdateToDoDTO} from '../../domain/dtos'
 
 export class ToDosController {
     constructor() {}
 
-    public getAll = (req: Request, res: Response) => {
+    public getAll = async (req: Request, res: Response) => {
+        const toDos = await prisma.toDo.findMany()
         res.json(toDos)
     }
 
-    public getWithId = (req: Request, res: Response) => {
+    public getWithId = async (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -21,7 +18,9 @@ export class ToDosController {
             return
         }
 
-        const toDo = toDos.find(toDo => toDo.id === id)
+        const toDo = await prisma.toDo.findFirst({
+            where: {id: id}
+        })
 
         if (toDo) {
             res.json(toDo)
@@ -32,51 +31,48 @@ export class ToDosController {
         }
     }
 
-    public create = (req: Request, res: Response) => {
-        const {text} = req.body
+    public create = async (req: Request, res: Response) => {
+        const [error, toDoDTO] = CreateToDoDTO.create(req.body)
 
-        if (!text) {
-            res.status(400).json({error: 'Text property is required'})
+        if (error) {
+            res.status(400).json({error: error})
             return
         }
 
-        const newToDo = {
-            id: toDos.length + 1,
-            text: text,
-            completedAt: null
-        }
-        toDos.push(newToDo)
+        const newToDo = await prisma.toDo.create({
+            data: toDoDTO!,
+        })
+
         res.json(newToDo)
     }
 
-    public update = (req: Request, res: Response) => {
+    public update = async (req: Request, res: Response) => {
         const id = +req.params.id
+        const [error, updateDTO] = UpdateToDoDTO.create({...req.body, id})
 
-        if (isNaN(id)) {
-            res.status(400).json({error: 'To id must be a number'})
+        if (error) {
+            res.status(400).json({error: error})
             return
         }
 
-        const toDo = toDos.find(toDo => toDo.id === id)
+        const toDo = await prisma.toDo.findFirst({
+            where: {id: id}
+        })
 
         if (!toDo) {
             res.status(404).json({error: `TODO with id ${id} not found`})
             return
         }
 
-        const {text, completedAt} = req.body
+        const updatedToDo = await prisma.toDo.update({
+            where: {id: id},
+            data: updateDTO!.values,
+        })
 
-        if (completedAt === null) {
-            toDo.completedAt = null
-        } else {
-            toDo.completedAt = new Date(completedAt || toDo.completedAt)
-        }
-
-        toDo.text = text || toDo.text
-        res.json(toDo)
+        res.json(updatedToDo)
     }
 
-    public delete = (req: Request, res: Response) => {
+    public delete = async (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -84,14 +80,23 @@ export class ToDosController {
             return
         }
 
-        const toDo = toDos.find(toDo => toDo.id === id)
+        const toDo = await prisma.toDo.findFirst({
+            where: {id: id}
+        })
 
         if (!toDo) {
             res.status(404).json({error: `TODO with id ${id} not found`})
             return
         }
 
-        toDos.splice(toDos.indexOf(toDo), 1)
-        res.json(toDo)
+        const deletedToDo = await prisma.toDo.delete({
+            where: {id: id}
+        })
+
+        if (deletedToDo) {
+            res.json(deletedToDo)
+        } else {
+            res.status(404).json({error: `TODO with id ${id} not found`})
+        }
     }
 }
