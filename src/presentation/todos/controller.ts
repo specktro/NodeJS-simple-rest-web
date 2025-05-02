@@ -1,13 +1,16 @@
 import {Request, Response} from 'express'
 import {prisma} from "../../data/postgres";
 import {CreateToDoDTO, UpdateToDoDTO} from '../../domain/dtos'
+import {TodoRepository} from "../../domain";
 
 export class ToDosController {
-    constructor() {}
+    constructor(
+        private readonly todoRepository: TodoRepository
+    ) {}
 
     public getAll = async (req: Request, res: Response) => {
-        const toDos = await prisma.toDo.findMany()
-        res.json(toDos)
+        const toDos = await this.todoRepository.getAll()
+        return res.json(toDos)
     }
 
     public getWithId = async (req: Request, res: Response) => {
@@ -18,16 +21,12 @@ export class ToDosController {
             return
         }
 
-        const toDo = await prisma.toDo.findFirst({
-            where: {id: id}
-        })
-
-        if (toDo) {
+        try {
+            const toDo = await this.todoRepository.findById(id)
             res.json(toDo)
-        } else {
-            res.status(404).json({
-                error: `TODO with id ${id} not found`
-            })
+        }
+        catch (error) {
+            res.status(400).json({error})
         }
     }
 
@@ -39,11 +38,8 @@ export class ToDosController {
             return
         }
 
-        const newToDo = await prisma.toDo.create({
-            data: toDoDTO!,
-        })
-
-        res.json(newToDo)
+        const toDo = await this.todoRepository.create(toDoDTO!)
+        res.json(toDo)
     }
 
     public update = async (req: Request, res: Response) => {
@@ -55,20 +51,7 @@ export class ToDosController {
             return
         }
 
-        const toDo = await prisma.toDo.findFirst({
-            where: {id: id}
-        })
-
-        if (!toDo) {
-            res.status(404).json({error: `TODO with id ${id} not found`})
-            return
-        }
-
-        const updatedToDo = await prisma.toDo.update({
-            where: {id: id},
-            data: updateDTO!.values,
-        })
-
+        const updatedToDo = await this.todoRepository.updateById(updateDTO!)
         res.json(updatedToDo)
     }
 
@@ -80,23 +63,7 @@ export class ToDosController {
             return
         }
 
-        const toDo = await prisma.toDo.findFirst({
-            where: {id: id}
-        })
-
-        if (!toDo) {
-            res.status(404).json({error: `TODO with id ${id} not found`})
-            return
-        }
-
-        const deletedToDo = await prisma.toDo.delete({
-            where: {id: id}
-        })
-
-        if (deletedToDo) {
-            res.json(deletedToDo)
-        } else {
-            res.status(404).json({error: `TODO with id ${id} not found`})
-        }
+        const deletedToDo = await this.todoRepository.deleteById(id)
+        res.json(deletedToDo)
     }
 }
