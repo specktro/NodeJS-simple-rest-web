@@ -1,16 +1,20 @@
 import {Request, Response} from 'express'
-import {prisma} from "../../data/postgres";
 import {CreateToDoDTO, UpdateToDoDTO} from '../../domain/dtos'
+import {CreateTodo, DeleteTodo, GetTodo, GetTodos, TodoRepository, UpdateTodo} from "../../domain"
 
 export class ToDosController {
-    constructor() {}
+    constructor(
+        private readonly todoRepository: TodoRepository
+    ) {}
 
-    public getAll = async (req: Request, res: Response) => {
-        const toDos = await prisma.toDo.findMany()
-        res.json(toDos)
+    public getAll = (req: Request, res: Response) => {
+        new GetTodos(this.todoRepository)
+            .execute()
+            .then(toDos => res.json(toDos))
+            .catch(error => res.status(400).json({error}))
     }
 
-    public getWithId = async (req: Request, res: Response) => {
+    public getWithId = (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -18,20 +22,13 @@ export class ToDosController {
             return
         }
 
-        const toDo = await prisma.toDo.findFirst({
-            where: {id: id}
-        })
-
-        if (toDo) {
-            res.json(toDo)
-        } else {
-            res.status(404).json({
-                error: `TODO with id ${id} not found`
-            })
-        }
+        new GetTodo(this.todoRepository)
+            .execute(id)
+            .then(todo => res.json(todo))
+            .catch(error => res.status(400).json({error}))
     }
 
-    public create = async (req: Request, res: Response) => {
+    public create = (req: Request, res: Response) => {
         const [error, toDoDTO] = CreateToDoDTO.create(req.body)
 
         if (error) {
@@ -39,40 +36,13 @@ export class ToDosController {
             return
         }
 
-        const newToDo = await prisma.toDo.create({
-            data: toDoDTO!,
-        })
-
-        res.json(newToDo)
+        new CreateTodo(this.todoRepository)
+            .execute(toDoDTO!)
+            .then(todo => res.json(todo))
+            .catch(error => res.status(400).json({error}))
     }
 
-    public update = async (req: Request, res: Response) => {
-        const id = +req.params.id
-        const [error, updateDTO] = UpdateToDoDTO.create({...req.body, id})
-
-        if (error) {
-            res.status(400).json({error: error})
-            return
-        }
-
-        const toDo = await prisma.toDo.findFirst({
-            where: {id: id}
-        })
-
-        if (!toDo) {
-            res.status(404).json({error: `TODO with id ${id} not found`})
-            return
-        }
-
-        const updatedToDo = await prisma.toDo.update({
-            where: {id: id},
-            data: updateDTO!.values,
-        })
-
-        res.json(updatedToDo)
-    }
-
-    public delete = async (req: Request, res: Response) => {
+    public update = (req: Request, res: Response) => {
         const id = +req.params.id
 
         if (isNaN(id)) {
@@ -80,23 +50,30 @@ export class ToDosController {
             return
         }
 
-        const toDo = await prisma.toDo.findFirst({
-            where: {id: id}
-        })
+        const [error, updateDTO] = UpdateToDoDTO.create({...req.body, id})
 
-        if (!toDo) {
-            res.status(404).json({error: `TODO with id ${id} not found`})
+        if (error) {
+            res.status(400).json({error: error})
             return
         }
 
-        const deletedToDo = await prisma.toDo.delete({
-            where: {id: id}
-        })
+        new UpdateTodo(this.todoRepository)
+            .execute(updateDTO!)
+            .then(todo => res.json(todo))
+            .catch(error => res.status(400).json({error}))
+    }
 
-        if (deletedToDo) {
-            res.json(deletedToDo)
-        } else {
-            res.status(404).json({error: `TODO with id ${id} not found`})
+    public delete = (req: Request, res: Response) => {
+        const id = +req.params.id
+
+        if (isNaN(id)) {
+            res.status(400).json({error: 'To id must be a number'})
+            return
         }
+
+        new DeleteTodo(this.todoRepository)
+            .execute(id)
+            .then(todo => res.json(todo))
+            .catch(error => res.status(400).json({error}))
     }
 }
