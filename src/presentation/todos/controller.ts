@@ -1,7 +1,6 @@
 import {Request, Response} from 'express'
-import {prisma} from "../../data/postgres";
 import {CreateToDoDTO, UpdateToDoDTO} from '../../domain/dtos'
-import {TodoRepository} from "../../domain";
+import {TodoRepository} from "../../domain"
 
 export class ToDosController {
     constructor(
@@ -10,7 +9,7 @@ export class ToDosController {
 
     public getAll = async (req: Request, res: Response) => {
         const toDos = await this.todoRepository.getAll()
-        return res.json(toDos)
+        res.json(toDos)
     }
 
     public getWithId = async (req: Request, res: Response) => {
